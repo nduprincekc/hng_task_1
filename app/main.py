@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 from app.database import engine
 from app import models
 from app.routers import profiles
@@ -15,8 +17,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(profiles.router, prefix="/api")
+class ForceCORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
 
+app.add_middleware(ForceCORSMiddleware)
+
+app.include_router(profiles.router, prefix="/api")
 
 @app.get("/")
 def root():
